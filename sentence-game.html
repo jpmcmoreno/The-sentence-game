@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>The Sentence Game</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+      color: white;
+    }
+
+    .title {
+      font-size: 2.8em;
+      font-weight: bold;
+      margin-bottom: 10px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+
+    .subtitle {
+      font-size: 1.3em;
+      opacity: 0.9;
+    }
+
+    .input-container {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 15px;
+      padding: 25px;
+      margin-bottom: 30px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+      backdrop-filter: blur(10px);
+    }
+
+    .input-label {
+      font-size: 1.1em;
+      font-weight: 600;
+      color: #333;
+      margin-bottom: 10px;
+      display: block;
+    }
+
+    .sentence-input {
+      width: 100%;
+      padding: 15px 20px;
+      font-size: 1.2em;
+      border: 2px solid #e0e0e0;
+      border-radius: 10px;
+      outline: none;
+      transition: all 0.3s ease;
+      background: white;
+      min-height: 60px;
+      resize: vertical;
+    }
+
+    .sentence-input:focus {
+      border-color: #4facfe;
+      box-shadow: 0 0 0 3px rgba(79, 172, 254, 0.1);
+    }
+
+    .current-sentence {
+      margin-top: 15px;
+      padding: 15px;
+      background: rgba(79, 172, 254, 0.1);
+      border-radius: 10px;
+      font-size: 1.1em;
+      color: #333;
+      line-height: 1.5;
+      min-height: 50px;
+    }
+
+    .sentence-preview {
+      font-weight: 500;
+      color: #2c5282;
+    }
+
+    .rules-container {
+      display: grid;
+      gap: 20px;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    }
+
+    .rule-card {
+      background: rgba(255, 255, 255, 0.95);
+      border-radius: 15px;
+      padding: 20px;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+      border-left: 5px solid #ccc;
+      transition: all 0.3s ease;
+      transform: translateY(0);
+      backdrop-filter: blur(10px);
+    }
+
+    .rule-card.hidden {
+      display: none;
+      opacity: 0;
+      transform: translateY(20px);
+    }
+
+    .rule-card.correct {
+      border-left-color: #48bb78;
+      background: rgba(72, 187, 120, 0.1);
+      animation: correctPulse 0.6s ease;
+    }
+
+    .rule-card.incorrect {
+      border-left-color: #f56565;
+      background: rgba(245, 101, 101, 0.1);
+      animation: incorrectShake 0.6s ease;
+    }
+
+    .rule-card.pending {
+      border-left-color: #ed8936;
+      background: rgba(237, 137, 54, 0.1);
+    }
+
+    @keyframes correctPulse {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.02); }
+      100% { transform: scale(1); }
+    }
+
+    @keyframes incorrectShake {
+      0%, 20%, 40%, 60%, 80% { transform: translateX(0); }
+      10%, 30%, 50%, 70% { transform: translateX(-5px); }
+      15%, 35%, 55%, 75% { transform: translateX(5px); }
+    }
+
+    .rule-number {
+      display: inline-block;
+      background: #4facfe;
+      color: white;
+      border-radius: 50%;
+      width: 32px;
+      height: 32px;
+      text-align: center;
+      line-height: 32px;
+      font-weight: bold;
+      font-size: 0.9em;
+      margin-right: 15px;
+      flex-shrink: 0;
+    }
+
+    .rule-card.correct .rule-number {
+      background: #48bb78;
+    }
+
+    .rule-card.incorrect .rule-number {
+      background: #f56565;
+    }
+
+    .rule-card.pending .rule-number {
+      background: #ed8936;
+    }
+
+    .rule-content {
+      display: flex;
+      align-items: flex-start;
+      gap: 15px;
+    }
+
+    .rule-text {
+      font-size: 1.1em;
+      color: #333;
+      line-height: 1.5;
+      flex: 1;
+    }
+
+    .rule-example {
+      font-style: italic;
+      color: #666;
+      margin-top: 8px;
+      font-size: 0.95em;
+    }
+
+    .rule-status {
+      margin-left: auto;
+      font-size: 1.2em;
+      font-weight: bold;
+    }
+
+    .rule-card.correct .rule-status::after {
+      content: "✓";
+      color: #48bb78;
+    }
+
+    .rule-card.incorrect .rule-status::after {
+      content: "✗";
+      color: #f56565;
+    }
+
+    .rule-card.pending .rule-status::after {
+      content: "⏳";
+      color: #ed8936;
+    }
+
+    .victory {
+      background: rgba(72, 187, 120, 0.95);
+      color: white;
+      border-radius: 20px;
+      padding: 40px;
+      text-align: center;
+      box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+      backdrop-filter: blur(10px);
+      animation: victoryBounce 1s ease;
+    }
+
+    @keyframes victoryBounce {
+      0%, 20%, 40%, 60%, 80% { transform: translateY(0); }
+      10%, 30%, 50%, 70% { transform: translateY(-10px); }
+    }
+
+    .victory h1 {
+      font-size: 3em;
+      margin-bottom: 20px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+    }
+
+    .victory p {
+      font-size: 1.3em;
+      opacity: 0.9;
+      line-height: 1.5;
+    }
+
+    .stats {
+      display: flex;
+      justify-content: space-between;
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 20px;
+      color: white;
+    }
+
+    .stat-item {
+      text-align: center;
+    }
+
+    .stat-number {
+      font-size: 1.5em;
+      font-weight: bold;
+      display: block;
+    }
+
+    .stat-label {
+      font-size: 0.9em;
+      opacity: 0.8;
+    }
+
+    .progress-bar {
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 10px;
+      height: 8px;
+      margin: 20px 0;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      background: linear-gradient(90deg, #48bb78, #68d391);
+      height: 100%;
+      border-radius: 10px;
+      transition: width 0.5s ease;
+      width: 0%;
+    }
+
+    .fade-in {
+      animation: fadeIn 0.5s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .word-count {
+      font-size: 0.9em;
+      color: #666;
+      margin-top: 5px;
+    }
+
+    .hint {
+      background: rgba(79, 172, 254, 0.1);
+      padding: 10px;
+      border-radius: 8px;
+      margin-top: 10px;
+      border-left: 3px solid #4facfe;
+    }
+
+    .hint-text {
+      font-size: 0.9em;
+      color: #2d3748;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 class="title">📝 The Sentence Game</h1>
+      <p class="subtitle">Build perfect sentences by following the rules step by step</p>
+    </div>
+
+    <div class="stats">
+      <div class="stat-item">
+        <span class="stat-number" id="completed-count">0</span>
+        <span class="stat-label">Rules Completed</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-number" id="total-count">12</span>
+        <span class="stat-label">Total Rules</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-number" id="progress-percent">0%</span>
+        <span class="stat-label">Progress</span>
+      </div>
+    </div>
+
+    <div class="progress-bar">
+      <div class="progress-fill" id="progress-fill"></div>
+    </div>
+
+    <div class="input-container">
+      <label class="input-label" for="sentence">Write your sentence:</label>
+      <textarea id="sentence" class="sentence-input" placeholder="Start with a simple word and build your sentence as you unlock rules..."></textarea>
+      <div class="word-count" id="word-count">0 words</div>
+      
+      <div class="current-sentence">
+        <div class="sentence-preview" id="sentence-preview">Your sentence will appear here...</div>
+      </div>
+    </div>
+
+    <div class="rules-container" id="rules-container">
+      <!-- Rules will be generated dynamically -->
+    </div>
+
+    <div id="victory" class="victory" style="display: none;">
+      <h1>🎉 Congratulations! 🎉</h1>
+      <p>You have mastered all the sentence construction rules!<br>
+         Your English skills are improving tremendously!</p>
+    </div>
+  </div>
+
+  <script>
+    // Rule configurations
+    const rulesConfig = [
+      {
+        texto: "Your sentence must start with a capital letter",
+        verificar: (sentence) => /^[A-Z]/.test(sentence.trim()),
+        ejemplo: "Example: 'The cat runs' (starts with 'T')",
+        hint: "Make sure the first letter of your sentence is uppercase!"
+      },
+      {
+        texto: "Your sentence must end with proper punctuation (. ! ?)",
+        verificar: (sentence) => /[.!?]$/.test(sentence.trim()),
+        ejemplo: "Example: 'I love books.' or 'Are you ready?' or 'What a surprise!'",
+        hint: "Don't forget to end your sentence with a period, question mark, or exclamation point!"
+      },
+      {
+        texto: "Your sentence must contain at least 3 words",
+        verificar: (sentence) => sentence.trim().split(/\s+/).filter(word => word.length > 0).length >= 3,
+        ejemplo: "Example: 'Dogs bark loudly' (3 words)",
+        hint: "Add more words to make your sentence at least 3 words long."
+      },
+      {
+        texto: "Your sentence must include a verb (action word)",
+        verificar: (sentence) => {
+          const commonVerbs = ['is', 'are', 'was', 'were', 'am', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may', 'might', 'can', 'run', 'walk', 'eat', 'drink', 'sleep', 'work', 'play', 'read', 'write', 'speak', 'listen', 'watch', 'see', 'look', 'hear', 'feel', 'think', 'know', 'understand', 'learn', 'teach', 'help', 'make', 'take', 'give', 'get', 'go', 'come', 'bring', 'send', 'put', 'sit', 'stand', 'lie', 'fall', 'rise', 'open', 'close', 'start', 'stop', 'continue', 'finish', 'begin', 'end', 'love', 'like', 'hate', 'want', 'need', 'try', 'use', 'buy', 'sell', 'pay', 'cost', 'spend', 'save', 'find', 'lose', 'win', 'fail', 'succeed', 'hope', 'believe', 'remember', 'forget', 'decide', 'choose', 'prefer', 'enjoy', 'travel', 'visit', 'stay', 'leave', 'arrive', 'return'];
+          const words = sentence.toLowerCase().split(/\s+/);
+          return words.some(word => commonVerbs.includes(word.replace(/[^a-z]/g, '')));
+        },
+        ejemplo: "Example: 'The dog runs quickly' (runs is a verb)",
+        hint: "Include an action word like 'run', 'eat', 'play', 'is', 'are', etc."
+      },
+      {
+        texto: "Your sentence must include a noun (person, place, or thing)",
+        verificar: (sentence) => {
+          const commonNouns = ['dog', 'cat', 'book', 'house', 'car', 'tree', 'person', 'man', 'woman', 'child', 'boy', 'girl', 'teacher', 'student', 'friend', 'family', 'mother', 'father', 'brother', 'sister', 'school', 'home', 'work', 'office', 'park', 'city', 'country', 'world', 'food', 'water', 'coffee', 'tea', 'music', 'movie', 'game', 'computer', 'phone', 'table', 'chair', 'bed', 'door', 'window', 'garden', 'flower', 'sun', 'moon', 'star', 'day', 'night', 'morning', 'afternoon', 'evening', 'week', 'month', 'year', 'time', 'money', 'job', 'life', 'love', 'happiness', 'problem', 'solution', 'question', 'answer', 'story', 'idea', 'dream', 'hope'];
+          const words = sentence.toLowerCase().split(/\s+/);
+          return words.some(word => commonNouns.includes(word.replace(/[^a-z]/g, '')));
+        },
+        ejemplo: "Example: 'The beautiful cat sleeps' (cat is a noun)",
+        hint: "Include a person, place, or thing like 'dog', 'house', 'teacher', etc."
+      },
+      {
+        texto: "Your sentence must contain at least 4 words",
+        verificar: (sentence) => sentence.trim().split(/\s+/).filter(word => word.length > 0).length >= 4,
+        ejemplo: "Example: 'My dog runs fast' (4 words)",
+        hint: "Expand your sentence to include at least 4 words."
+      },
+      {
+        texto: "Your sentence must include an adjective (describing word)",
+        verificar: (sentence) => {
+          const commonAdjectives = ['good', 'bad', 'big', 'small', 'large', 'little', 'long', 'short', 'tall', 'high', 'low', 'wide', 'narrow', 'thick', 'thin', 'heavy', 'light', 'strong', 'weak', 'fast', 'slow', 'quick', 'easy', 'hard', 'difficult', 'simple', 'complex', 'new', 'old', 'young', 'fresh', 'clean', 'dirty', 'hot', 'cold', 'warm', 'cool', 'wet', 'dry', 'bright', 'dark', 'colorful', 'beautiful', 'ugly', 'pretty', 'nice', 'wonderful', 'amazing', 'interesting', 'boring', 'exciting', 'funny', 'serious', 'happy', 'sad', 'angry', 'calm', 'peaceful', 'noisy', 'quiet', 'loud', 'soft', 'smooth', 'rough', 'sweet', 'bitter', 'sour', 'delicious', 'terrible', 'perfect', 'broken', 'complete', 'empty', 'full', 'rich', 'poor', 'expensive', 'cheap', 'free', 'busy', 'lazy', 'active', 'tired', 'healthy', 'sick', 'safe', 'dangerous', 'important', 'special', 'normal', 'strange', 'famous', 'popular', 'successful'];
+          const words = sentence.toLowerCase().split(/\s+/);
+          return words.some(word => commonAdjectives.includes(word.replace(/[^a-z]/g, '')));
+        },
+        ejemplo: "Example: 'The small dog runs quickly' (small is an adjective)",
+        hint: "Add a describing word like 'beautiful', 'fast', 'big', 'happy', etc."
+      },
+      {
+        texto: "Your sentence must contain at least 5 words",
+        verificar: (sentence) => sentence.trim().split(/\s+/).filter(word => word.length > 0).length >= 5,
+        ejemplo: "Example: 'My beautiful cat sleeps peacefully' (5 words)",
+        hint: "Keep expanding! Your sentence needs at least 5 words now."
+      },
+      {
+        texto: "Your sentence must include an article (a, an, or the)",
+        verificar: (sentence) => {
+          const words = sentence.toLowerCase().split(/\s+/);
+          return words.some(word => ['a', 'an', 'the'].includes(word.replace(/[^a-z]/g, '')));
+        },
+        ejemplo: "Example: 'The happy dog runs in a park' (the, a are articles)",
+        hint: "Include 'a', 'an', or 'the' in your sentence."
+      },
+      {
+        texto: "Your sentence must contain at least 6 words",
+        verificar: (sentence) => sentence.trim().split(/\s+/).filter(word => word.length > 0).length >= 6,
+        ejemplo: "Example: 'The beautiful cat sleeps on my bed' (7 words)",
+        hint: "Make your sentence even longer with at least 6 words!"
+      },
+      {
+        texto: "Your sentence must include a preposition (in, on, at, with, for, etc.)",
+        verificar: (sentence) => {
+          const commonPrepositions = ['in', 'on', 'at', 'by', 'for', 'with', 'from', 'to', 'of', 'about', 'under', 'over', 'above', 'below', 'between', 'among', 'through', 'during', 'before', 'after', 'until', 'since', 'without', 'within', 'outside', 'inside', 'beside', 'behind', 'across', 'around', 'near', 'far', 'against', 'toward', 'into', 'onto', 'upon'];
+          const words = sentence.toLowerCase().split(/\s+/);
+          return words.some(word => commonPrepositions.includes(word.replace(/[^a-z]/g, '')));
+        },
+        ejemplo: "Example: 'The cat sleeps on the comfortable bed' (on is a preposition)",
+        hint: "Add a preposition like 'in', 'on', 'at', 'with', 'under', etc."
+      },
+      {
+        texto: "Your sentence must contain at least 7 words and tell a complete story or idea",
+        verificar: (sentence) => {
+          const wordCount = sentence.trim().split(/\s+/).filter(word => word.length > 0).length;
+          const hasSubject = /\b(i|you|he|she|it|we|they|the|a|an|my|your|his|her|its|our|their)\b/i.test(sentence);
+          const hasVerb = /\b(is|are|was|were|am|be|been|being|have|has|had|do|does|did|will|would|could|should|may|might|can|run|walk|eat|drink|sleep|work|play|read|write|speak|listen|watch|see|look|hear|feel|think|know|understand|learn|teach|help|make|take|give|get|go|come|bring|send|put|sit|stand|lie|fall|rise|open|close|start|stop|continue|finish|begin|end|love|like|hate|want|need|try|use|buy|sell|pay|cost|spend|save|find|lose|win|fail|succeed|hope|believe|remember|forget|decide|choose|prefer|enjoy|travel|visit|stay|leave|arrive|return)\b/i.test(sentence);
+          return wordCount >= 7 && hasSubject && hasVerb;
+        },
+        ejemplo: "Example: 'The happy children play in the beautiful park every morning' (9 words with complete idea)",
+        hint: "Create a sentence with at least 7 words that tells a complete story with a clear subject and action."
+      }
+    ];
+
+    // Variables globales
+    const container = document.getElementById('rules-container');
+    const input = document.getElementById('sentence');
+    const preview = document.getElementById('sentence-preview');
+    const wordCount = document.getElementById('word-count');
+    const completedCount = document.getElementById('completed-count');
+    const progressPercent = document.getElementById('progress-percent');
+    const progressFill = document.getElementById('progress-fill');
+    const reglas = [];
+    const desbloqueadas = [];
+
+    // Create rule elements
+    rulesConfig.forEach((config, index) => {
+      const card = document.createElement('div');
+      card.className = `rule-card ${index === 0 ? 'pending' : 'hidden'}`;
+      card.id = `regla${index + 1}`;
+      
+      card.innerHTML = `
+        <div class="rule-content">
+          <div class="rule-number">${index + 1}</div>
+          <div class="rule-text">
+            ${config.texto}
+            <div class="rule-example">${config.ejemplo}</div>
+            <div class="hint">
+              <div class="hint-text">${config.hint}</div>
+            </div>
+          </div>
+          <div class="rule-status"></div>
+        </div>
+      `;
+      
+      reglas.push(card);
+      desbloqueadas.push(index === 0);
+      
+      if (index === 0) {
+        container.appendChild(card);
+      }
+    });
+
+    function updateStats(completed, total) {
+      completedCount.textContent = completed;
+      const percent = Math.round((completed / total) * 100);
+      progressPercent.textContent = `${percent}%`;
+      progressFill.style.width = `${percent}%`;
+    }
+
+    function updateWordCount(sentence) {
+      const words = sentence.trim().split(/\s+/).filter(word => word.length > 0);
+      wordCount.textContent = `${words.length} word${words.length !== 1 ? 's' : ''}`;
+    }
+
+    function updatePreview(sentence) {
+      if (sentence.trim()) {
+        preview.textContent = sentence;
+      } else {
+        preview.textContent = "Your sentence will appear here...";
+      }
+    }
+
+    input.addEventListener('input', () => {
+      const sentence = input.value;
+      let todasCorrectas = true;
+      let reglasCompletadas = 0;
+
+      updatePreview(sentence);
+      updateWordCount(sentence);
+
+      for (let i = 0; i < reglas.length; i++) {
+        const regla = reglas[i];
+        const config = rulesConfig[i];
+
+        if (desbloqueadas[i]) {
+          regla.classList.remove('hidden');
+          const cumple = config.verificar(sentence);
+          
+          regla.classList.remove('correct', 'incorrect', 'pending');
+          
+          if (cumple) {
+            regla.classList.add('correct');
+            reglasCompletadas++;
+          } else {
+            regla.classList.add('incorrect');
+            todasCorrectas = false;
+          }
+        } else {
+          if (todasCorrectas) {
+            desbloqueadas[i] = true;
+            reglas[i].classList.remove('hidden');
+            reglas[i].classList.add('pending', 'fade-in');
+            container.appendChild(reglas[i]);
+            break;
+          } else {
+            break;
+          }
+        }
+      }
+
+      updateStats(reglasCompletadas, reglas.length);
+
+      // Check victory
+      if (reglasCompletadas === reglas.length) {
+        setTimeout(() => {
+          document.getElementById('victory').style.display = 'block';
+          container.style.display = 'none';
+          document.querySelector('.input-container').style.display = 'none';
+          document.querySelector('.stats').style.display = 'none';
+          document.querySelector('.progress-bar').style.display = 'none';
+        }, 500);
+      }
+    });
+
+    // Initialize stats
+    updateStats(0, reglas.length);
+  </script>
+</body>
+</html>
